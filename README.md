@@ -20,7 +20,17 @@ This implementation gives each user one hospital and multiple branch memberships
 
 ## React and Spring Boot migration workspace
 
-Local prerequisites currently verified on the development machine are Java 25, Node.js 22, MongoDB Server 8.2, and MongoDB Compass. MongoDB Server must be running on `127.0.0.1:27017`.
+Local prerequisites currently verified on the development machine are Java 25, Node.js 22, MongoDB Server 8.2, and MongoDB Compass. The rewrite uses an isolated single-node replica set on `127.0.0.1:27018`; the installed Windows MongoDB service on port 27017 remains unchanged.
+
+Start and initialize the transaction-capable CareDesk MongoDB instance:
+
+```powershell
+cd C:\xampp\htdocs\hms
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\start-caredesk-mongodb.ps1
+cd backend
+.\gradlew.bat initMongoReplicaSet
+.\gradlew.bat verifyMongoTransactions
+```
 
 Start the Spring Boot API from one PowerShell window:
 
@@ -37,7 +47,16 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Open **http://127.0.0.1:5173**. The development server proxies `/api` to Spring Boot at `http://127.0.0.1:8080`. Check `http://127.0.0.1:8080/api/actuator/health` for API and MongoDB readiness. Connect MongoDB Compass to `mongodb://127.0.0.1:27017`; the application database is named `caredesk` once collections are created.
+Open **http://127.0.0.1:5173**. The development server proxies `/api` to Spring Boot at `http://127.0.0.1:8080`. Check `http://127.0.0.1:8080/api/actuator/health` for API and MongoDB readiness. Connect MongoDB Compass to `mongodb://127.0.0.1:27018/?replicaSet=caredesk-rs`; the application database is `caredesk`.
+
+To inventory the fictional Laravel SQLite source without printing patient values:
+
+```powershell
+cd C:\xampp\htdocs\hms\backend
+.\gradlew.bat legacyDataInventory
+```
+
+MongoDB migration conventions are fixed for later modules: every operational document carries `hospitalId` and, where applicable, `branchId`; cross-collection links use immutable IDs while invoices, prescriptions, lab orders, and stock movements embed the historical display/price snapshots they must preserve. Money uses BSON Decimal128 rather than floating point. Instants are stored as UTC BSON dates, local clinical dates remain ISO calendar dates, and branch timezone is retained separately. Audit and ledger collections are append-only. Versioned startup migrations create named indexes and record `MIG-002-v1` in `schemaMigrations`.
 
 Run the migration workspace checks with:
 

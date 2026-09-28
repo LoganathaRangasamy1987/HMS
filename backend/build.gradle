@@ -23,6 +23,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	runtimeOnly 'org.xerial:sqlite-jdbc:3.51.1.0'
 	testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-mongodb-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
@@ -33,4 +34,20 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+tasks.register('initMongoReplicaSet', JavaExec) {
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.caredesk.api.migration.MongoReplicaSetInitializer'
+}
+
+tasks.register('legacyDataInventory', JavaExec) {
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.caredesk.api.migration.LegacyDataInventory'
+	args = [project.findProperty('legacyDatabase') ?: '../database/database.sqlite']
+}
+
+tasks.register('verifyMongoTransactions', JavaExec) {
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.caredesk.api.migration.MongoTransactionVerifier'
 }

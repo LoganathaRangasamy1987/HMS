@@ -10,7 +10,7 @@ This is the main progress record for the whole application. Update it whenever w
 | --- | --- |
 | Product | CareDesk Hospital ERP; the verified Laravel application remains the reference implementation while an approved React + Spring Boot + MongoDB replacement is built locally |
 | Current sprint | **Technology migration foundation is in progress; the Laravel ERP Lite implementation remains operational and its external release closeout is deferred until local rewrite parity** |
-| Current task | **MIG-001 — React/Spring Boot/MongoDB workspace and local runtime foundation (DONE locally); MIG-002 is next.** |
+| Current task | **MIG-002 — MongoDB architecture, replica-set transactions, indexes, and legacy migration contracts (DONE locally); MIG-003 is next.** |
 | Latest application verification | **Migration workspace:** Spring Boot tests and Gradle build passed; React lint and production build passed; live API health, MongoDB connectivity, frontend HTTP, and frontend-to-API proxy checks returned `UP` / HTTP 200. GitHub Actions run 36420226526 passed both `test` and `migration-workspace` jobs on commit `6d76df8`. **Laravel reference:** 272 PHP tests / 2141 assertions pass with 3 opt-in skips. |
 | Deployment | Source is pushed to the public GitHub repository and remote CI passes. Local development uses persistent SQLite at `database/database.sqlite`; all migrations and fictional demo seeds are applied and the local server returns HTTP 200. Existing MariaDB files were not modified or removed. External staging and production are not deployed |
 | Next coding task | **Complete MIG-001 scaffolding and local runtime checks, then MIG-002 MongoDB domain/data-migration design and MIG-003 authentication/tenant foundation** |
@@ -80,7 +80,7 @@ The user approved a local full-stack rewrite on 2026-09-28. The existing Laravel
 | ID | Task and completion condition | Status |
 | --- | --- | --- |
 | MIG-001 | Workspace/runtime foundation: verify Java, Node, MongoDB Server and Compass; scaffold Spring Boot API and React UI; configure local environment templates, health checks, builds, and tests without committing secrets | DONE — Java 25, Node 22, MongoDB Server 8.2.1 and Compass 1.49.5 verified; Spring Boot 4.1 API and React 19/TypeScript workspace, environment defaults, secured routing baseline, live health UI, Gradle/frontend builds, tests, lint, local Mongo connection and CI job completed |
-| MIG-002 | MongoDB architecture and migration contracts: collection boundaries, indexes, references/snapshots, audit history, decimal/date conventions, transaction/replica-set requirements, and repeatable fictional SQLite-to-Mongo import validation | PENDING |
+| MIG-002 | MongoDB architecture and migration contracts: collection boundaries, indexes, references/snapshots, audit history, decimal/date conventions, transaction/replica-set requirements, and repeatable fictional SQLite-to-Mongo import validation | DONE — isolated `caredesk-rs` on port 27018, transaction manager and rollback proof, versioned named indexes, tenant/reference/snapshot/Decimal128/UTC/append-only conventions, count-only allowlisted SQLite inventory, Compass URI, repeatable commands, build and live health verified without altering legacy data |
 | MIG-003 | Authentication and tenant foundation: users, hospitals, branches, memberships, roles/permissions, secure browser authentication, active context, audit, and cross-tenant rejection | PENDING |
 | MIG-004 | Patients, doctors, availability, appointments, slot picker, tokens, and reception parity | PENDING |
 | MIG-005 | Service catalog, invoices, payments, adjustments, receipts, and reconciliation parity | PENDING |
@@ -408,6 +408,13 @@ Next execution order:
 4. Start Sprint 8 with HMS-801 after ERP Lite acceptance, while maintaining this tracker at every work session.
 
 ## Dated work log
+
+### 2026-09-28 — MongoDB architecture and migration contracts completed
+
+- **Task:** MIG-002 — DONE locally. The existing MongoDB Windows service on port 27017 and Laravel SQLite database were not modified.
+- **Actual changes:** added a project-managed MongoDB 8.2 single-node replica set (`caredesk-rs`) on loopback port 27018 with ignored data/log/PID files, idempotent Java initialization, Spring transaction manager, and an executable rollback proof. Added versioned startup creation of named compound/unique indexes for users, memberships, patients, appointments, invoices, payment idempotency, audit timelines, and FEFO medicine batches, plus `schemaMigrations` marker `MIG-002-v1`. Added an allowlisted JDBC SQLite inventory command that reports only table counts. Recorded tenant scoping, immutable reference/snapshot, Decimal128 money, UTC instant/local-date, and append-only audit/ledger conventions. Updated local commands, Compass URI, and CI replica-set verification.
+- **Verification:** replica set initialized and elected `127.0.0.1:27018` primary; an inserted document inside an aborted transaction left zero records; the legacy inventory read 19 allowlisted fictional-data tables and printed counts only; Gradle build/tests passed; a fresh Spring process using the replica-set URI started on port 8081, applied indexes, and returned actuator health `UP`.
+- **Next:** MIG-003 — implement secure browser authentication plus hospital, branch, user, membership, role/permission, active-context, audit, and tenant-isolation foundations in Spring Boot and React.
 
 ### 2026-09-28 — React, Spring Boot, and MongoDB migration foundation completed
 
