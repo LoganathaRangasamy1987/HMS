@@ -1,0 +1,8 @@
+{
+  "name": "caredesk-hospital-erp",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node scripts/copy-assets.cjs", "test:browser": "playwright test" },
+  "dependencies": { "bootstrap": "5.3.8" },
+  "devDependencies": { "@playwright/test": "^1.55.0" }
+}

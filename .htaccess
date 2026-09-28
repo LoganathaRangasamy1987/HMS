@@ -1,0 +1,10 @@
+# Only the public directory may be served. The development server uses it directly.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^$ public/ [R=302,L]
+    RewriteRule !^public(?:/|$) - [F,L]
+</IfModule>
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>
+Options -Indexes

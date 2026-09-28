@@ -1,0 +1,17 @@
+/.env
+/.env.*
+!/.env.example
+/.runtime/
+/vendor/
+/node_modules/
+/public/build/
+/public/vendor/
+/playwright-report/
+/public/hot
+/storage/*.key
+/storage/logs/*
+!/storage/logs/.gitignore
+/.phpunit.cache/
+/.phpunit.result.cache
+/database/*.sqlite*
+/test-results/
