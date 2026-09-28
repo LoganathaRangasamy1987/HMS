@@ -10,11 +10,11 @@ This is the main progress record for the whole application. Update it whenever w
 | --- | --- |
 | Product | CareDesk Hospital ERP; Laravel modular monolith, Blade/Bootstrap/JavaScript, MySQL-compatible database |
 | Current sprint | **Sprint 7 ERP Lite reporting/release work is in progress; Sprint 6 pharmacy is complete locally and Sprint 1 external closeout remains separately tracked** |
-| Current task | **HMS-705 — release engineering and recovery verification (PARTIAL/BLOCKED externally: local gates complete; staging, provider, remote CI, and managed restore access are unavailable).** |
-| Latest application verification | **272 PHP tests passed, 2141 assertions; 3 opt-in concurrency tests skipped in the default suite.** HMS-012 focused session/authentication coverage passed **14 / 85**; explicit-file Pint passed. HMS-705 local readiness/recovery evidence remains valid and its external gates remain pending. |
-| Deployment | Local development now uses persistent SQLite at `database/database.sqlite`; all migrations and fictional demo seeds are applied and the local server returns HTTP 200. Existing MariaDB files were not modified or removed. External staging and production are not deployed |
-| Next coding task | **Close HMS-705 external gates (production environment/mailer, remote CI and staging deployment), then HMS-706 pilot onboarding and Lite acceptance** |
-| Next foundation closeout tasks | Finish HMS-002/HMS-010 and configure real mail delivery in HMS-011 when their external prerequisites are available; HMS-012 is complete locally |
+| Current task | **HMS-705 — release engineering and recovery verification (PARTIAL/BLOCKED externally: local gates and remote CI complete; staging, mail-provider, and managed restore access are unavailable).** |
+| Latest application verification | **GitHub Actions “Foundation checks” run 36416408904 passed on the public `main` commit `d1cd796`; clean-runner checkout, Composer/npm installation, asset build, 272 PHP tests / 2141 assertions with 3 opt-in skips, and Laravel cache compilation passed.** HMS-012 focused session/authentication coverage passed **14 / 85** locally; explicit-file Pint passed. HMS-705 local readiness/recovery evidence remains valid and its remaining external gates are staging/production operations. |
+| Deployment | Source is pushed to the public GitHub repository and remote CI passes. Local development uses persistent SQLite at `database/database.sqlite`; all migrations and fictional demo seeds are applied and the local server returns HTTP 200. Existing MariaDB files were not modified or removed. External staging and production are not deployed |
+| Next coding task | **Close HMS-705 staging/production, mailer, and managed-restore gates, then HMS-706 pilot onboarding and Lite acceptance** |
+| Next foundation closeout tasks | HMS-002 and HMS-012 are complete; finish HMS-010 staging verification and configure real mail delivery in HMS-011 when their external prerequisites are available |
 | First operational pilot | End of Sprint 4: registration → appointment/check-in → consultation/prescription → invoice/payment → patient history |
 | ERP Lite release | End of Sprint 7, after laboratory, pharmacy, reporting, and release acceptance |
 | Full application | Advanced hospital modules, patient access, product administration, integrations, and final release gates in Sprints 8–18 |
@@ -79,7 +79,7 @@ Laboratory and pharmacy can proceed in parallel after their shared clinical and 
 | ID | Task | Status | Actual work completed | Pending / completion condition |
 | --- | --- | --- | --- | --- |
 | HMS-001 | Document pilot scope and business rules | DONE | [Pilot scope](docs/pilot-scope.md) defines foundation boundaries, roles, outpatient states, billing rules, audit principles, and acceptance gates | Validate real hospital details and operating choices during pilot onboarding; no claim of stakeholder sign-off |
-| HMS-002 | Project environment and reproducible setup | PARTIAL | Project-local PHP/Composer, Laravel dependencies and lockfiles, Bootstrap build, dedicated local database/account, environment example, setup scripts, README, ignore rules, local Git repository, and configured GitHub `origin` | Complete the first authenticated push and verify installation from a fresh checkout |
+| HMS-002 | Project environment and reproducible setup | DONE | Project-local PHP/Composer, Laravel dependencies and lockfiles, Bootstrap build, dedicated local database/account, environment example, setup scripts, README and ignore rules; public GitHub `main` established with excluded secrets/runtime data, and clean-runner checkout/install/build/test/cache compilation passed in GitHub Actions run 36416408904 | No remaining work for this scope; staging deployment is HMS-010/HMS-705 |
 | HMS-003 | Foundation schema and demo data | DONE | Hospital, branch, department, user, membership, role, permission, audit, private-file, session, queue, and cache structures; ownership constraints; two fictional hospitals seeded | Future clinical/financial tables belong to later sprints |
 | HMS-004 | Authentication and password-reset application flow | DONE — local scope | Sign in/out, hashing, throttling, encrypted sessions, disabled-account handling, reset notifications, token expiry/reuse checks, and browser CSRF checks | Real mail delivery is HMS-011; actual elapsed session-idle expiry verification is HMS-012 |
 | HMS-005 | Authorized hospital/branch context | DONE | Active memberships determine tenant scope; assigned-branch switching; inactive, revoked, and foreign membership rejection | Multi-hospital identities and platform access are not implemented; see Sprint 16 |
@@ -87,7 +87,7 @@ Laboratory and pharmacy can proceed in parallel after their shared clinical and 
 | HMS-007 | Organization and staff management | DONE — local scope | Hospital details; branch/department/staff create/edit/search/deactivation; branch role assignments; retained membership history; administrator safeguards; provisioning CLI implemented | Platform provisioning UI is Sprint 16. Exercise CLI provisioning on clean staging as part of HMS-010 |
 | HMS-008 | Shared Bootstrap portal | DONE | Sign-in/reset pages; responsive sidebar/header; active branch indicator; dashboard counts; administration forms/tables/messages and access error pages | New module screens will extend this layout |
 | HMS-009 | Audit and private administrative files | DONE — foundation scope | Allowlisted transactional change audit; read-only log; authorized PDF/JPEG/PNG upload/download API with branch/hospital scope and hidden storage paths | Patient document screen and clinical access are Sprint 2/4. This is not a finished clinical document module |
-| HMS-010 | Automated checks, CI, and staging verification | PARTIAL | PHP and browser suites, [CI definition](.github/workflows/ci.yml), deployment guide; local migrations/build/cache checks passed in prior session | Run remote CI, deploy staging, provision a clean organization, and record staging smoke/access checks. A YAML file is not a successful CI run |
+| HMS-010 | Automated checks, CI, and staging verification | PARTIAL | PHP and browser suites, [CI definition](.github/workflows/ci.yml), deployment guide and local checks; GitHub Actions “Foundation checks” run 36416408904 passed on pushed commit `d1cd796` | Deploy staging, provision a clean organization, and record staging smoke/access checks |
 | HMS-011 | Configure real password-reset delivery | PENDING | Local mailer writes reset notifications to the development log | Configure provider/domain/sender/credentials and verify delivery plus reset flow on staging; never put those secrets in this file |
 | HMS-012 | Verify idle-session expiration with database sessions | DONE — local scope | Dedicated database-handler coverage proves payload rejection after the configured 30-minute idle lifetime; remember-me HTTP coverage restores an authorized user and safely re-establishes the first active branch only when session context is absent; stale/revoked selected memberships remain forbidden | Repeat against staging after HMS-705 infrastructure is available; local behavior and regression are verified |
 | TRACK-001 | Create persistent roadmap and progress tracking | DONE | Full roadmap, actual statuses, verification history, pending dependencies, next steps, README link, and persistent instructions in AGENTS.md/CLAUDE.md; checked 105 unique task IDs, 18 sprint sections, and all local links | Maintain this file during every future project work session |
@@ -374,8 +374,7 @@ Earlier browser failures exposed a staff Blade parsing error and a mobile menu s
 
 | Item | What is missing | Affected task / next action |
 | --- | --- | --- |
-| Version control | No local Git repository or configured remote exists | HMS-002: initialize repository, establish remote/review workflow, demonstrate fresh installation |
-| Remote CI / staging | No remote run, target deployment, or deployment credentials recorded | HMS-010: establish target and run the documented deployment and acceptance steps |
+| Remote CI / staging | GitHub remote and CI are working; no staging target or deployment credentials are recorded | HMS-010/HMS-705: establish the staging target and run the documented deployment and acceptance steps |
 | Real mail | Development log transport only | HMS-011: configure SMTP/provider and verify delivered resets |
 | Hospital onboarding details | Actual branch/staff roster, patient requirements, numbering, fees, scheduling, and approval policies need validation | Use explicit pilot defaults for implementation; confirm during onboarding before operational release |
 | Provider-specific integrations | Provider selection/specifications/test access not recorded | Sprint 17: define contracts and test each adapter when access exists |
@@ -383,9 +382,9 @@ Earlier browser failures exposed a staff Blade parsing error and a mobile menu s
 
 Next execution order:
 
-1. Complete the external **HMS-705** release gates when staging, remote CI, production configuration, and provider access are available.
+1. Complete the external **HMS-705** release gates when staging, production configuration, mail-provider, and managed-restore access are available; remote CI is complete.
 2. Run **HMS-706** pilot onboarding and ERP Lite acceptance with agreed hospital configuration and staff participants.
-3. Continue HMS-002/HMS-010/HMS-011 external foundation closeout alongside those release activities.
+3. Continue HMS-010/HMS-011 external foundation closeout alongside those release activities; HMS-002 is complete.
 4. Start Sprint 8 with HMS-801 after ERP Lite acceptance, while maintaining this tracker at every work session.
 
 ## Dated work log
@@ -393,8 +392,8 @@ Next execution order:
 ### 2026-09-28 — HMS-705 external completion requested; access still unavailable
 
 - **Task:** HMS-705 remains PARTIAL. The local implementation and checks are complete, but the remaining completion conditions are operations on real external systems and cannot be truthfully reproduced inside the local workspace.
-- **Required access:** a source-control remote capable of running CI; an HTTPS staging host with PHP 8.4, Node 20+, a dedicated MySQL/MariaDB database and deployment credentials; SMTP/provider configuration and a test recipient; queue-worker/scheduler supervision; backup/private-file storage; and permission to perform an isolated restore plus rollback rehearsal.
-- **Repository progress:** after the user made `github.com/LoganathaRangasamy1987/HMS.git` public, `git ls-remote` succeeded and showed an empty repository. The local project was initialized on `main` and the supplied URL was configured as `origin`. Ignore and secret-pattern checks confirmed `.env`, SQLite data/backups, logs, private uploads, dependencies, build output, and the project-local runtime are excluded; authenticated first push and fresh-checkout verification remain.
+- **Required access:** an HTTPS staging host with PHP 8.4, Node 20+, a dedicated MySQL/MariaDB database and deployment credentials; SMTP/provider configuration and a test recipient; queue-worker/scheduler supervision; backup/private-file storage; and permission to perform an isolated restore plus rollback rehearsal. Source control and remote CI are now available and passing.
+- **Repository and CI result:** after the user made `github.com/LoganathaRangasamy1987/HMS.git` public, the project was initialized on `main`, audited, committed as `d1cd796`, and pushed after explicit public-egress authorization and browser reauthentication. `.env`, SQLite data/backups, logs, private uploads, dependencies, build output, and the project-local runtime were excluded. Remote `main` matched the local commit exactly. GitHub Actions “Foundation checks” run 36416408904 completed successfully, proving clean checkout, dependency installation, asset build, PHP regression, and Laravel cache compilation. HMS-002 is DONE; HMS-010 now retains staging-only acceptance work.
 - **Next:** once those non-secret access details are supplied through the appropriate deployment environment, run the documented deployment procedure, strict release check, delivered password-reset test, smoke/access checks, monitored queue test, managed restore, and rollback rehearsal; record the resulting evidence before marking HMS-705 DONE.
 
 ### 2026-09-28 — database-session idle expiration verification completed
