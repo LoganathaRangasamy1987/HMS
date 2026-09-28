@@ -20,6 +20,9 @@ public class MongoSchemaInitializer implements ApplicationRunner {
 	@Override
 	public void run(ApplicationArguments args) {
 		unique("users", "hospital_email_unique", "hospitalId", "email");
+		unique("hospitals", "hospital_code_unique", "code");
+		unique("branches", "branch_code_unique", "hospitalId", "code");
+		unique("roles", "role_code_unique", "code");
 		unique("memberships", "membership_scope_unique", "hospitalId", "userId", "branchId");
 		unique("patients", "patient_uhid_unique", "hospitalId", "uhid");
 		unique("invoices", "invoice_number_unique", "hospitalId", "number");
@@ -30,6 +33,10 @@ public class MongoSchemaInitializer implements ApplicationRunner {
 		mongoTemplate.getCollection("schemaMigrations").updateOne(
 			new Document("_id", "MIG-002-v1"),
 			new Document("$setOnInsert", new Document("description", "CareDesk core tenant and workflow indexes")),
+			new com.mongodb.client.model.UpdateOptions().upsert(true));
+		mongoTemplate.getCollection("schemaMigrations").updateOne(
+			new Document("_id", "MIG-003-v1"),
+			new Document("$setOnInsert", new Document("description", "Authentication, tenant, role, and audit foundation")),
 			new com.mongodb.client.model.UpdateOptions().upsert(true));
 	}
 

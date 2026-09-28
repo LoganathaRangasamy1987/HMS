@@ -10,10 +10,10 @@ This is the main progress record for the whole application. Update it whenever w
 | --- | --- |
 | Product | CareDesk Hospital ERP; the verified Laravel application remains the reference implementation while an approved React + Spring Boot + MongoDB replacement is built locally |
 | Current sprint | **Technology migration foundation is in progress; the Laravel ERP Lite implementation remains operational and its external release closeout is deferred until local rewrite parity** |
-| Current task | **MIG-002 — MongoDB architecture, replica-set transactions, indexes, and legacy migration contracts (DONE); MIG-003 is next.** |
-| Latest application verification | **Migration workspace:** Spring Boot tests and Gradle build passed; React lint and production build passed; live API health, MongoDB connectivity, frontend HTTP, and frontend-to-API proxy checks returned `UP` / HTTP 200. GitHub Actions run 36422296390 passed both `test` and `migration-workspace`, including the MongoDB replica-set transaction proof, on commit `e34675c`. **Laravel reference:** 272 PHP tests / 2141 assertions pass with 3 opt-in skips. |
+| Current task | **MIG-003 — authentication, tenant context, authorization, audit, and cross-tenant rejection foundation (DONE locally); remote CI verification is pending.** |
+| Latest application verification | **Migration workspace:** MIG-003 Spring tests pass for CSRF, BCrypt login, session continuity, assigned branch switching, cross-hospital rejection, and audit permission denial; Gradle build, React lint/build, and a live cookie/CSRF/login/tenant HTTP flow passed locally. GitHub Actions run 36422296390 remains the latest recorded remote pass pending the MIG-003 push. **Laravel reference:** 272 PHP tests / 2141 assertions pass with 3 opt-in skips. |
 | Deployment | Source is pushed to the public GitHub repository and remote CI passes. Local development uses persistent SQLite at `database/database.sqlite`; all migrations and fictional demo seeds are applied and the local server returns HTTP 200. Existing MariaDB files were not modified or removed. External staging and production are not deployed |
-| Next coding task | **MIG-003 — authentication, tenant context, authorization, audit, and cross-tenant rejection foundation** |
+| Next coding task | **MIG-004 — patients, doctors, availability, appointments, slot picker, tokens, and reception parity** |
 | Next foundation closeout tasks | HMS-002 and HMS-012 are complete; finish HMS-010 staging verification and configure real mail delivery in HMS-011 when their external prerequisites are available |
 | First operational pilot | End of Sprint 4: registration → appointment/check-in → consultation/prescription → invoice/payment → patient history |
 | ERP Lite release | End of Sprint 7, after laboratory, pharmacy, reporting, and release acceptance |
@@ -69,7 +69,7 @@ These are working delivery batches, expanded from the earlier M0–M10 milestone
 | 16 | Platform administration, multi-branch operations, editions | M10 | Stable modules and tenant isolation | PENDING |
 | 17 | Messaging, payments, insurance, devices, PACS integrations | M10 | Relevant module and provider specifications | PENDING |
 | 18 | Full application acceptance and rollout | Final release gate | Required modules/integrations for selected edition | PENDING |
-| Migration | React + Spring Boot + MongoDB replacement and parity cutover | Existing Sprints 1–7 provide the behavioral reference | Approved local rewrite; Laravel remains available until acceptance | IN PROGRESS — MIG-002 complete; MIG-003 is next |
+| Migration | React + Spring Boot + MongoDB replacement and parity cutover | Existing Sprints 1–7 provide the behavioral reference | Approved local rewrite; Laravel remains available until acceptance | IN PROGRESS — MIG-003 complete locally; remote CI pending |
 
 Laboratory and pharmacy can proceed in parallel after their shared clinical and billing contracts are defined. Other independent modules can overlap when the team has capacity. External setup tasks do not prevent independent local implementation.
 
@@ -81,7 +81,7 @@ The user approved a local full-stack rewrite on 2026-09-28. The existing Laravel
 | --- | --- | --- |
 | MIG-001 | Workspace/runtime foundation: verify Java, Node, MongoDB Server and Compass; scaffold Spring Boot API and React UI; configure local environment templates, health checks, builds, and tests without committing secrets | DONE — Java 25, Node 22, MongoDB Server 8.2.1 and Compass 1.49.5 verified; Spring Boot 4.1 API and React 19/TypeScript workspace, environment defaults, secured routing baseline, live health UI, Gradle/frontend builds, tests, lint, local Mongo connection and CI job completed |
 | MIG-002 | MongoDB architecture and migration contracts: collection boundaries, indexes, references/snapshots, audit history, decimal/date conventions, transaction/replica-set requirements, and repeatable fictional SQLite-to-Mongo import validation | DONE — isolated `caredesk-rs` on port 27018, transaction manager and rollback proof, versioned named indexes, tenant/reference/snapshot/Decimal128/UTC/append-only conventions, count-only allowlisted SQLite inventory, Compass URI, repeatable commands, build and live health verified without altering legacy data |
-| MIG-003 | Authentication and tenant foundation: users, hospitals, branches, memberships, roles/permissions, secure browser authentication, active context, audit, and cross-tenant rejection | PENDING |
+| MIG-003 | Authentication and tenant foundation: users, hospitals, branches, memberships, roles/permissions, secure browser authentication, active context, audit, and cross-tenant rejection | DONE locally — Mongo identity collections and indexes, BCrypt login, HTTP-only session, CSRF, session rotation/expiry, active membership switching, server permissions, append-only audit, cross-hospital rejection, local demo UI/data, automated tests, live HTTP verification |
 | MIG-004 | Patients, doctors, availability, appointments, slot picker, tokens, and reception parity | PENDING |
 | MIG-005 | Service catalog, invoices, payments, adjustments, receipts, and reconciliation parity | PENDING |
 | MIG-006 | Encounters, consultations, vitals, diagnoses, prescriptions, documents, and Patient 360 parity | PENDING |
@@ -408,6 +408,14 @@ Next execution order:
 4. Start Sprint 8 with HMS-801 after ERP Lite acceptance, while maintaining this tracker at every work session.
 
 ## Dated work log
+
+### 2026-09-28 — React/Spring authentication and tenant foundation completed locally
+
+- **Task:** MIG-003 — DONE for local implementation and acceptance; remote CI verification is pending the public push.
+- **Actual changes:** added Mongo-backed hospitals, branches, users, roles/permissions, and memberships with idempotent fictional local identities and versioned `MIG-003-v1` indexes. Added BCrypt authentication, generic 401/403 responses, HTTP-only 30-minute server sessions, login session-ID rotation, cookie-backed CSRF, active assigned-membership context, cross-hospital consistency checks, permission-gated hospital audit history, and sign-in/sign-out/branch-selection audit events. Replaced the React migration placeholder with a responsive login and role/context-aware portal shell. Updated migration operating instructions; the `local` Spring profile must not be used for deployment.
+- **Verification:** all seven Spring tests passed after the implementation, including four authentication/tenant tests covering missing CSRF, login/session continuity, allowed branch switching, foreign-hospital membership rejection, administrator audit access, and receptionist audit denial. The Gradle application artifact was built, React lint and production build passed, and a fresh API on port 8082 completed a real CSRF-token → BCrypt login → session cookie → `/me` flow returning the correct Lotus hospital, Coimbatore branch, administrator role, and two assigned memberships. No Laravel data was modified.
+- **Implementation note:** the first run exposed Spring 7 constructor selection and TypeScript type-only import requirements, both corrected. Authentication itself is intentionally performed before any Mongo transaction; placing the password lookup inside a transaction caused Spring Security to translate the database authentication failure to 401. Post-authentication writes use the transaction-capable MIG-002 database foundation where a workflow requires atomicity.
+- **Next:** push and verify the migration CI job, then start MIG-004 patient, doctor, availability, slot-picker, appointment, token, and reception parity.
 
 ### 2026-09-28 — MongoDB architecture and migration contracts completed
 

@@ -49,6 +49,8 @@ npm.cmd run dev
 
 Open **http://127.0.0.1:5173**. The development server proxies `/api` to Spring Boot at `http://127.0.0.1:8080`. Check `http://127.0.0.1:8080/api/actuator/health` for API and MongoDB readiness. Connect MongoDB Compass to `mongodb://127.0.0.1:27018/?replicaSet=caredesk-rs`; the application database is `caredesk`.
 
+The Spring Boot local profile creates fictional MIG-003 identity data idempotently. Sign in through React with `reception@lotus.test`, `admin@lotus.test`, or `doctor@lotus.test`; the local-only password is `CareDesk@2026!`. The separate `admin@river.test` identity supports hospital-isolation verification. Authentication uses an HTTP-only server session, rotates the session identifier at login, requires the `X-XSRF-TOKEN` header for mutations, and expires idle sessions after 30 minutes. Branch context can only be changed to an active membership returned by `GET /api/v1/me`; role permissions are enforced again by the API. Do not run the `local` Spring profile in a deployed environment.
+
 To inventory the fictional Laravel SQLite source without printing patient values:
 
 ```powershell
@@ -56,7 +58,7 @@ cd C:\xampp\htdocs\hms\backend
 .\gradlew.bat legacyDataInventory
 ```
 
-MongoDB migration conventions are fixed for later modules: every operational document carries `hospitalId` and, where applicable, `branchId`; cross-collection links use immutable IDs while invoices, prescriptions, lab orders, and stock movements embed the historical display/price snapshots they must preserve. Money uses BSON Decimal128 rather than floating point. Instants are stored as UTC BSON dates, local clinical dates remain ISO calendar dates, and branch timezone is retained separately. Audit and ledger collections are append-only. Versioned startup migrations create named indexes and record `MIG-002-v1` in `schemaMigrations`.
+MongoDB migration conventions are fixed for later modules: every operational document carries `hospitalId` and, where applicable, `branchId`; cross-collection links use immutable IDs while invoices, prescriptions, lab orders, and stock movements embed the historical display/price snapshots they must preserve. Money uses BSON Decimal128 rather than floating point. Instants are stored as UTC BSON dates, local clinical dates remain ISO calendar dates, and branch timezone is retained separately. Audit and ledger collections are append-only. Versioned startup migrations create named indexes and record `MIG-002-v1` and `MIG-003-v1` in `schemaMigrations`.
 
 Run the migration workspace checks with:
 
