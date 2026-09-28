@@ -10,10 +10,10 @@ This is the main progress record for the whole application. Update it whenever w
 | --- | --- |
 | Product | CareDesk Hospital ERP; the verified Laravel application remains the reference implementation while an approved React + Spring Boot + MongoDB replacement is built locally |
 | Current sprint | **Technology migration foundation is in progress; the Laravel ERP Lite implementation remains operational and its external release closeout is deferred until local rewrite parity** |
-| Current task | **MIG-002 — MongoDB architecture, replica-set transactions, indexes, and legacy migration contracts (DONE locally); MIG-003 is next.** |
+| Current task | **MIG-002 — DONE locally; remote CI replica-set startup correction is in verification before MIG-003 starts.** |
 | Latest application verification | **Migration workspace:** Spring Boot tests and Gradle build passed; React lint and production build passed; live API health, MongoDB connectivity, frontend HTTP, and frontend-to-API proxy checks returned `UP` / HTTP 200. GitHub Actions run 36420226526 passed both `test` and `migration-workspace` jobs on commit `6d76df8`. **Laravel reference:** 272 PHP tests / 2141 assertions pass with 3 opt-in skips. |
-| Deployment | Source is pushed to the public GitHub repository and remote CI passes. Local development uses persistent SQLite at `database/database.sqlite`; all migrations and fictional demo seeds are applied and the local server returns HTTP 200. Existing MariaDB files were not modified or removed. External staging and production are not deployed |
-| Next coding task | **Complete MIG-001 scaffolding and local runtime checks, then MIG-002 MongoDB domain/data-migration design and MIG-003 authentication/tenant foundation** |
+| Deployment | Source is pushed to the public GitHub repository. The existing Laravel CI job passes; migration-workspace run 36421577700 exposed a CI-only MongoDB replica-set startup omission and its correction is pending remote verification. Local development uses persistent SQLite at `database/database.sqlite`; all migrations and fictional demo seeds are applied and the local server returns HTTP 200. Existing MariaDB files were not modified or removed. External staging and production are not deployed |
+| Next coding task | **MIG-003 — authentication, tenant context, authorization, audit, and cross-tenant rejection foundation** |
 | Next foundation closeout tasks | HMS-002 and HMS-012 are complete; finish HMS-010 staging verification and configure real mail delivery in HMS-011 when their external prerequisites are available |
 | First operational pilot | End of Sprint 4: registration → appointment/check-in → consultation/prescription → invoice/payment → patient history |
 | ERP Lite release | End of Sprint 7, after laboratory, pharmacy, reporting, and release acceptance |
@@ -69,7 +69,7 @@ These are working delivery batches, expanded from the earlier M0–M10 milestone
 | 16 | Platform administration, multi-branch operations, editions | M10 | Stable modules and tenant isolation | PENDING |
 | 17 | Messaging, payments, insurance, devices, PACS integrations | M10 | Relevant module and provider specifications | PENDING |
 | 18 | Full application acceptance and rollout | Final release gate | Required modules/integrations for selected edition | PENDING |
-| Migration | React + Spring Boot + MongoDB replacement and parity cutover | Existing Sprints 1–7 provide the behavioral reference | Approved local rewrite; Laravel remains available until acceptance | IN PROGRESS — MIG-001 started |
+| Migration | React + Spring Boot + MongoDB replacement and parity cutover | Existing Sprints 1–7 provide the behavioral reference | Approved local rewrite; Laravel remains available until acceptance | IN PROGRESS — MIG-002 implemented locally; CI correction under verification |
 
 Laboratory and pharmacy can proceed in parallel after their shared clinical and billing contracts are defined. Other independent modules can overlap when the team has capacity. External setup tasks do not prevent independent local implementation.
 
@@ -414,6 +414,7 @@ Next execution order:
 - **Task:** MIG-002 — DONE locally. The existing MongoDB Windows service on port 27017 and Laravel SQLite database were not modified.
 - **Actual changes:** added a project-managed MongoDB 8.2 single-node replica set (`caredesk-rs`) on loopback port 27018 with ignored data/log/PID files, idempotent Java initialization, Spring transaction manager, and an executable rollback proof. Added versioned startup creation of named compound/unique indexes for users, memberships, patients, appointments, invoices, payment idempotency, audit timelines, and FEFO medicine batches, plus `schemaMigrations` marker `MIG-002-v1`. Added an allowlisted JDBC SQLite inventory command that reports only table counts. Recorded tenant scoping, immutable reference/snapshot, Decimal128 money, UTC instant/local-date, and append-only audit/ledger conventions. Updated local commands, Compass URI, and CI replica-set verification.
 - **Verification:** replica set initialized and elected `127.0.0.1:27018` primary; an inserted document inside an aborted transaction left zero records; the legacy inventory read 19 allowlisted fictional-data tables and printed counts only; Gradle build/tests passed; a fresh Spring process using the replica-set URI started on port 8081, applied indexes, and returned actuator health `UP`.
+- **Remote CI follow-up:** GitHub Actions run 36421577700 passed the Laravel `test` job but failed before migration tests because the MongoDB service container had not been started with `--replSet`. The workflow now starts an explicit MongoDB 8.2 container with `--replSet caredesk-rs --bind_ip_all`, waits for ping, initiates the replica set, and waits for a writable primary. Remote verification is pending on the corrective commit.
 - **Next:** MIG-003 — implement secure browser authentication plus hospital, branch, user, membership, role/permission, active-context, audit, and tenant-isolation foundations in Spring Boot and React.
 
 ### 2026-09-28 — React, Spring Boot, and MongoDB migration foundation completed

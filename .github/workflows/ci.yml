@@ -41,11 +41,6 @@ jobs:
     env:
       MONGODB_URI: mongodb://127.0.0.1:27017/caredesk?replicaSet=caredesk-rs
       CAREDESK_MONGO_REPLICA_URI: mongodb://127.0.0.1:27017/?replicaSet=caredesk-rs
-    services:
-      mongodb:
-        image: mongo:8.2
-        ports:
-          - 27017:27017
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v5
@@ -61,9 +56,10 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Initialize MongoDB replica set
         run: |
-          container_id=$(docker ps --filter ancestor=mongo:8.2 --format '{{.ID}}' | head -n 1)
-          docker exec "$container_id" mongosh --quiet --eval 'rs.initiate({_id:"caredesk-rs",members:[{_id:0,host:"127.0.0.1:27017"}]})'
-          sleep 5
+          docker run --detach --name caredesk-mongodb --publish 27017:27017 mongo:8.2 --replSet caredesk-rs --bind_ip_all
+          until docker exec caredesk-mongodb mongosh --quiet --eval 'db.adminCommand({ping:1})' >/dev/null 2>&1; do sleep 1; done
+          docker exec caredesk-mongodb mongosh --quiet --eval 'rs.initiate({_id:"caredesk-rs",members:[{_id:0,host:"127.0.0.1:27017"}]})'
+          until docker exec caredesk-mongodb mongosh --quiet --eval 'if (!db.hello().isWritablePrimary) { quit(1) }' >/dev/null 2>&1; do sleep 1; done
       - run: chmod +x backend/gradlew
       - run: ./backend/gradlew -p backend test
       - run: ./backend/gradlew -p backend verifyMongoTransactions
