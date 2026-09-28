@@ -1,6 +1,6 @@
 # CareDesk Hospital ERP
 
-The first development milestone is a runnable Laravel foundation with a Bootstrap portal and a local SQLite database. The outpatient pilot specification is in [docs/pilot-scope.md](docs/pilot-scope.md).
+The verified Laravel ERP Lite implementation remains available as the behavioral reference. An approved replacement using a React frontend, Spring Boot API, and local MongoDB database is now being built in `frontend/` and `backend/`. The outpatient pilot specification is in [docs/pilot-scope.md](docs/pilot-scope.md).
 
 For the complete sprint/task roadmap, actual completed work, pending items, verification history, and next steps, see **[PROJECT_PROGRESS.md](PROJECT_PROGRESS.md)**. Keep that file updated during every development session; it is the main source of project status.
 
@@ -17,6 +17,40 @@ For the complete sprint/task roadmap, actual completed work, pending items, veri
 - Two fictional hospitals for isolation tests. Appointments, the service catalog, invoice draft/issue flow, and payment collection are available locally; clinical workflows, laboratory, and pharmacy are later milestones.
 
 This implementation gives each user one hospital and multiple branch memberships. Patient identity is stored once per hospital with the original registration branch retained. Hospital provisioning currently uses a CLI command; a platform administrator portal is deferred.
+
+## React and Spring Boot migration workspace
+
+Local prerequisites currently verified on the development machine are Java 25, Node.js 22, MongoDB Server 8.2, and MongoDB Compass. MongoDB Server must be running on `127.0.0.1:27017`.
+
+Start the Spring Boot API from one PowerShell window:
+
+```powershell
+cd C:\xampp\htdocs\hms\backend
+.\gradlew.bat bootRun
+```
+
+Start React from a second PowerShell window:
+
+```powershell
+cd C:\xampp\htdocs\hms\frontend
+npm.cmd install
+npm.cmd run dev
+```
+
+Open **http://127.0.0.1:5173**. The development server proxies `/api` to Spring Boot at `http://127.0.0.1:8080`. Check `http://127.0.0.1:8080/api/actuator/health` for API and MongoDB readiness. Connect MongoDB Compass to `mongodb://127.0.0.1:27017`; the application database is named `caredesk` once collections are created.
+
+Run the migration workspace checks with:
+
+```powershell
+cd C:\xampp\htdocs\hms\backend
+.\gradlew.bat test
+
+cd C:\xampp\htdocs\hms\frontend
+npm.cmd run lint
+npm.cmd run build
+```
+
+The Laravel application remains at the repository root and continues to use the existing commands below. Do not remove it until migration acceptance task MIG-010 is complete.
 
 ## Requirements
 

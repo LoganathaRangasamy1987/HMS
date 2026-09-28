@@ -8,12 +8,12 @@ This is the main progress record for the whole application. Update it whenever w
 
 | Item | Actual position |
 | --- | --- |
-| Product | CareDesk Hospital ERP; Laravel modular monolith, Blade/Bootstrap/JavaScript, MySQL-compatible database |
-| Current sprint | **Sprint 7 ERP Lite reporting/release work is in progress; Sprint 6 pharmacy is complete locally and Sprint 1 external closeout remains separately tracked** |
-| Current task | **HMS-705 — release engineering and recovery verification (PARTIAL/BLOCKED externally: local gates and remote CI complete; staging, mail-provider, and managed restore access are unavailable).** |
-| Latest application verification | **GitHub Actions “Foundation checks” run 36416408904 passed on the public `main` commit `d1cd796`; clean-runner checkout, Composer/npm installation, asset build, 272 PHP tests / 2141 assertions with 3 opt-in skips, and Laravel cache compilation passed.** HMS-012 focused session/authentication coverage passed **14 / 85** locally; explicit-file Pint passed. HMS-705 local readiness/recovery evidence remains valid and its remaining external gates are staging/production operations. |
+| Product | CareDesk Hospital ERP; the verified Laravel application remains the reference implementation while an approved React + Spring Boot + MongoDB replacement is built locally |
+| Current sprint | **Technology migration foundation is in progress; the Laravel ERP Lite implementation remains operational and its external release closeout is deferred until local rewrite parity** |
+| Current task | **MIG-001 — React/Spring Boot/MongoDB workspace and local runtime foundation (DONE locally); MIG-002 is next.** |
+| Latest application verification | **Migration workspace:** Spring Boot tests and Gradle build passed; React lint and production build passed; live API health, MongoDB connectivity, frontend HTTP, and frontend-to-API proxy checks returned `UP` / HTTP 200. **Laravel reference:** GitHub Actions “Foundation checks” run 36416408904 passed with 272 PHP tests / 2141 assertions and 3 opt-in skips. |
 | Deployment | Source is pushed to the public GitHub repository and remote CI passes. Local development uses persistent SQLite at `database/database.sqlite`; all migrations and fictional demo seeds are applied and the local server returns HTTP 200. Existing MariaDB files were not modified or removed. External staging and production are not deployed |
-| Next coding task | **Close HMS-705 staging/production, mailer, and managed-restore gates, then HMS-706 pilot onboarding and Lite acceptance** |
+| Next coding task | **Complete MIG-001 scaffolding and local runtime checks, then MIG-002 MongoDB domain/data-migration design and MIG-003 authentication/tenant foundation** |
 | Next foundation closeout tasks | HMS-002 and HMS-012 are complete; finish HMS-010 staging verification and configure real mail delivery in HMS-011 when their external prerequisites are available |
 | First operational pilot | End of Sprint 4: registration → appointment/check-in → consultation/prescription → invoice/payment → patient history |
 | ERP Lite release | End of Sprint 7, after laboratory, pharmacy, reporting, and release acceptance |
@@ -69,8 +69,28 @@ These are working delivery batches, expanded from the earlier M0–M10 milestone
 | 16 | Platform administration, multi-branch operations, editions | M10 | Stable modules and tenant isolation | PENDING |
 | 17 | Messaging, payments, insurance, devices, PACS integrations | M10 | Relevant module and provider specifications | PENDING |
 | 18 | Full application acceptance and rollout | Final release gate | Required modules/integrations for selected edition | PENDING |
+| Migration | React + Spring Boot + MongoDB replacement and parity cutover | Existing Sprints 1–7 provide the behavioral reference | Approved local rewrite; Laravel remains available until acceptance | IN PROGRESS — MIG-001 started |
 
 Laboratory and pharmacy can proceed in parallel after their shared clinical and billing contracts are defined. Other independent modules can overlap when the team has capacity. External setup tasks do not prevent independent local implementation.
+
+## Approved React, Spring Boot, and MongoDB migration
+
+The user approved a local full-stack rewrite on 2026-09-28. The existing Laravel application and its tests remain the behavioral reference and must not be removed until replacement acceptance passes. MongoDB Compass is an administration client; MongoDB Server is the application database. Financial, appointment-capacity, numbering, and stock operations require transaction-safe designs and a local replica set before those modules are accepted.
+
+| ID | Task and completion condition | Status |
+| --- | --- | --- |
+| MIG-001 | Workspace/runtime foundation: verify Java, Node, MongoDB Server and Compass; scaffold Spring Boot API and React UI; configure local environment templates, health checks, builds, and tests without committing secrets | DONE — Java 25, Node 22, MongoDB Server 8.2.1 and Compass 1.49.5 verified; Spring Boot 4.1 API and React 19/TypeScript workspace, environment defaults, secured routing baseline, live health UI, Gradle/frontend builds, tests, lint, local Mongo connection and CI job completed |
+| MIG-002 | MongoDB architecture and migration contracts: collection boundaries, indexes, references/snapshots, audit history, decimal/date conventions, transaction/replica-set requirements, and repeatable fictional SQLite-to-Mongo import validation | PENDING |
+| MIG-003 | Authentication and tenant foundation: users, hospitals, branches, memberships, roles/permissions, secure browser authentication, active context, audit, and cross-tenant rejection | PENDING |
+| MIG-004 | Patients, doctors, availability, appointments, slot picker, tokens, and reception parity | PENDING |
+| MIG-005 | Service catalog, invoices, payments, adjustments, receipts, and reconciliation parity | PENDING |
+| MIG-006 | Encounters, consultations, vitals, diagnoses, prescriptions, documents, and Patient 360 parity | PENDING |
+| MIG-007 | Laboratory catalogs, orders, specimens, results, verification, reports, and worklists parity | PENDING |
+| MIG-008 | Pharmacy catalogs, purchases, batches, dispensing, returns, adjustments, alerts, and reconciliation parity | PENDING |
+| MIG-009 | Operational reports, global search/export, notifications, dashboards, and role-aware navigation parity | PENDING |
+| MIG-010 | Local acceptance and cutover: full regression/browser journeys, concurrency and transaction checks, data migration rehearsal, operating guide, and explicit approval before Laravel retirement | PENDING |
+
+**Migration exit:** the React/Spring Boot/MongoDB implementation passes equivalent tenant, role, workflow, financial, clinical, laboratory, pharmacy, reporting, and recovery acceptance. Laravel remains intact until MIG-010.
 
 ## Sprint 1 — application foundation
 
@@ -388,6 +408,14 @@ Next execution order:
 4. Start Sprint 8 with HMS-801 after ERP Lite acceptance, while maintaining this tracker at every work session.
 
 ## Dated work log
+
+### 2026-09-28 — React, Spring Boot, and MongoDB migration foundation completed
+
+- **Task:** MIG-001 — DONE for local scope. The approved rewrite is additive: the verified Laravel application remains intact at the repository root until MIG-010 acceptance.
+- **Actual changes:** added stable MIG-001 through MIG-010 migration tasks. Generated an official Spring Boot 4.1.1 Gradle/Java 25 API in `backend/` with Web MVC, Security, Validation, Actuator, and Spring Data MongoDB; configured environment-driven Mongo/API settings, public readiness endpoints, protected-by-default placeholder routes, credentialed CORS, and endpoint tests. Generated a React 19 + TypeScript + Vite frontend in `frontend/`, replaced the starter page with a responsive CareDesk migration shell and live API status, and added the development proxy/environment template. Added local execution instructions and a GitHub Actions migration-workspace job with Java 25, Node 22, MongoDB 8.2, backend tests, frontend lint, and builds.
+- **Environment evidence:** Java 25 LTS and Node 22.20 were present. MongoDB Server 8.2.1 was installed as an automatic running Windows service on `127.0.0.1:27017`; Compass 1.49.5 was installed. Spring’s MongoDB driver connected successfully to the standalone local server. A replica set is intentionally deferred to MIG-002 before transaction-dependent modules.
+- **Verification:** Spring controller/security tests passed and `gradlew build` completed successfully. `npm run lint` and `npm run build` passed with no reported dependency vulnerabilities. With hidden local development processes, `GET :8080/api/actuator/health` returned `UP`, `GET :8080/api/v1/system` returned `ready`, React returned HTTP 200 on port 5173, and its proxied health request returned `UP`. The first backend test attempt exposed and then resolved an incorrect Spring Boot 4 test import; a sandbox-only Gradle download denial was avoided by using the installed user-scoped Gradle cache.
+- **Next:** MIG-002 — define transaction-safe MongoDB collection/index/reference/snapshot conventions, configure and verify a local single-node replica set, and implement a repeatable fictional-data migration contract before authentication/tenant work in MIG-003.
 
 ### 2026-09-28 — HMS-705 external completion requested; access still unavailable
 

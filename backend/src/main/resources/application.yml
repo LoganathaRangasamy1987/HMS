@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: caredesk-api
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://127.0.0.1:27017/caredesk}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      base-path: /api/actuator
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+caredesk:
+  frontend-origin: ${FRONTEND_ORIGIN:http://127.0.0.1:5173}
