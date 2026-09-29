@@ -25,7 +25,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-@SpringBootTest(properties = "spring.mongodb.uri=mongodb://127.0.0.1:27018/caredesk?replicaSet=caredesk-rs")
+@SpringBootTest
 @AutoConfigureMockMvc
 class ReceptionWorkflowTest {
 	@Autowired
