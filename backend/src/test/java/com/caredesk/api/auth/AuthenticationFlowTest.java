@@ -20,7 +20,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import com.caredesk.api.identity.UserAccountRepository;
 
-@SpringBootTest(properties = "spring.data.mongodb.uri=mongodb://127.0.0.1:27018/caredesk?replicaSet=caredesk-rs")
+@SpringBootTest(properties = "spring.mongodb.uri=mongodb://127.0.0.1:27018/caredesk?replicaSet=caredesk-rs")
 @AutoConfigureMockMvc
 class AuthenticationFlowTest {
 	@Autowired

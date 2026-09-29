@@ -37,11 +37,14 @@ public class DemoIdentityInitializer implements ApplicationRunner {
 		Branch chn = save(new Branch("branch-lotus-chn", lotus.id(), "CHN", "Chennai Clinic", "Asia/Kolkata", "active"));
 		Branch slm = save(new Branch("branch-river-slm", river.id(), "SLM", "Salem Main", "Asia/Kolkata", "active"));
 		Role admin = save(new Role("role-admin", "HOSPITAL_ADMIN", "Hospital administrator",
-			Set.of("DASHBOARD.VIEW", "ORGANIZATION.MANAGE", "STAFF.MANAGE", "AUDIT.VIEW")));
+			Set.of("DASHBOARD.VIEW", "ORGANIZATION.MANAGE", "STAFF.MANAGE", "AUDIT.VIEW", "PATIENT.VIEW",
+				"PATIENT.MANAGE", "DOCTOR.VIEW", "DOCTOR_AVAILABILITY.VIEW", "APPOINTMENT.VIEW", "APPOINTMENT.MANAGE")));
 		Role reception = save(new Role("role-reception", "RECEPTIONIST", "Receptionist",
-			Set.of("DASHBOARD.VIEW", "PATIENT.VIEW", "PATIENT.MANAGE", "DOCTOR.VIEW", "APPOINTMENT.VIEW", "APPOINTMENT.MANAGE")));
+			Set.of("DASHBOARD.VIEW", "PATIENT.VIEW", "PATIENT.MANAGE", "DOCTOR.VIEW",
+				"DOCTOR_AVAILABILITY.VIEW", "APPOINTMENT.VIEW", "APPOINTMENT.MANAGE")));
 		Role doctor = save(new Role("role-doctor", "DOCTOR", "Doctor",
-			Set.of("DASHBOARD.VIEW", "PATIENT.VIEW", "PATIENT_HISTORY.VIEW", "DOCTOR_AVAILABILITY.MANAGE", "ENCOUNTER.MANAGE")));
+			Set.of("DASHBOARD.VIEW", "PATIENT.VIEW", "PATIENT_HISTORY.VIEW", "DOCTOR.VIEW",
+				"DOCTOR_AVAILABILITY.VIEW", "DOCTOR_AVAILABILITY.MANAGE", "APPOINTMENT.VIEW", "ENCOUNTER.MANAGE")));
 		UserAccount lotusAdmin = saveUser("user-lotus-admin", lotus.id(), "admin@lotus.test", "Ananya Raman");
 		UserAccount receptionist = saveUser("user-lotus-reception", lotus.id(), "reception@lotus.test", "Priya S");
 		UserAccount lotusDoctor = saveUser("user-lotus-doctor", lotus.id(), "doctor@lotus.test", "Dr Arjun Kumar");

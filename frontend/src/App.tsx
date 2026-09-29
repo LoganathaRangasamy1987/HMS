@@ -3,27 +3,17 @@ import type { FormEvent } from 'react'
 import './App.css'
 
 type Membership = { id: string; branchId: string; branchName: string; role: string }
-type Session = {
-  name: string; email: string; hospitalName: string; membershipId: string
-  branchName: string; role: string; permissions: string[]; memberships: Membership[]
-}
+type Session = { name: string; email: string; hospitalName: string; membershipId: string; branchName: string; role: string; permissions: string[]; memberships: Membership[] }
+type Patient = { id: string; uhid: string; firstName: string; lastName?: string; mobile: string }
+type Doctor = { id: string; name: string; specialization: string; qualification: string; consultationFee: { value?: string } | string }
+type Slot = { startsAt: string; endsAt: string; remaining: number; capacity: number }
+type AvailableDate = { date: string; label: string; slots: Slot[] }
+type Appointment = { id: string; patientName: string; patientUhid: string; doctorName: string; appointmentDate: string; startsAt: string; tokenNumber: number; type: string; status: string }
 
 const api = import.meta.env.VITE_API_BASE_URL ?? '/api'
-
-async function csrf(): Promise<{ headerName: string; token: string }> {
-  const response = await fetch(`${api}/v1/auth/csrf`, { credentials: 'include' })
-  if (!response.ok) throw new Error('Unable to establish a secure session.')
-  return response.json()
-}
-
-async function mutate(path: string, body?: unknown): Promise<Response> {
-  const token = await csrf()
-  return fetch(`${api}${path}`, {
-    method: 'POST', credentials: 'include',
-    headers: { 'Content-Type': 'application/json', [token.headerName]: token.token },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
-}
+async function csrf(): Promise<{ headerName: string; token: string }> { const response = await fetch(`${api}/v1/auth/csrf`, { credentials: 'include' }); if (!response.ok) throw new Error('Unable to establish a secure session.'); return response.json() }
+async function mutate(path: string, body?: unknown, method = 'POST'): Promise<Response> { const token = await csrf(); return fetch(`${api}${path}`, { method, credentials: 'include', headers: { 'Content-Type': 'application/json', [token.headerName]: token.token }, body: body === undefined ? undefined : JSON.stringify(body) }) }
+async function getJson<T>(path: string): Promise<T> { const response = await fetch(`${api}${path}`, { credentials: 'include' }); if (!response.ok) throw new Error('Unable to load reception data.'); return response.json() }
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -32,77 +22,38 @@ function App() {
   const [password, setPassword] = useState('CareDesk@2026!')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [doctorId, setDoctorId] = useState('')
+  const [patientId, setPatientId] = useState('')
+  const [dates, setDates] = useState<AvailableDate[]>([])
+  const [selectedDate, setSelectedDate] = useState('')
+  const [selectedTime, setSelectedTime] = useState('')
+  const [patientForm, setPatientForm] = useState({ firstName: '', lastName: '', dateOfBirth: '', gender: 'FEMALE', mobile: '', email: '', address: '' })
 
-  useEffect(() => {
-    fetch(`${api}/v1/me`, { credentials: 'include' })
-      .then(async response => response.ok ? setSession(await response.json()) : setSession(null))
-      .finally(() => setChecking(false))
-  }, [])
+  useEffect(() => { fetch(`${api}/v1/me`, { credentials: 'include' }).then(async response => response.ok ? setSession(await response.json()) : setSession(null)).finally(() => setChecking(false)) }, [])
+  useEffect(() => { if (session) void loadWorkspace() }, [session])
+  useEffect(() => { if (!doctorId) return; getJson<AvailableDate[]>(`/v1/doctors/${doctorId}/availability?days=30`).then(setDates).catch(showError) }, [doctorId, appointments.length])
 
-  async function login(event: FormEvent) {
-    event.preventDefault(); setBusy(true); setError('')
-    try {
-      const response = await mutate('/v1/auth/login', { email, password })
-      if (!response.ok) throw new Error(response.status === 401 ? 'Email or password is incorrect.' : 'Sign in failed.')
-      setSession(await response.json())
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Sign in failed.') }
-    finally { setBusy(false) }
-  }
+  function showError(reason: unknown) { setError(reason instanceof Error ? reason.message : 'The request could not be completed.') }
+  async function loadWorkspace() { try { const [patientRows, doctorRows, appointmentRows] = await Promise.all([getJson<Patient[]>('/v1/patients'), getJson<Doctor[]>('/v1/doctors'), getJson<Appointment[]>('/v1/appointments')]); setPatients(patientRows); setDoctors(doctorRows); setAppointments(appointmentRows); setPatientId(patientRows[0]?.id ?? ''); setDoctorId(doctorRows[0]?.id ?? '') } catch (reason) { showError(reason) } }
+  async function login(event: FormEvent) { event.preventDefault(); setBusy(true); setError(''); try { const response = await mutate('/v1/auth/login', { email, password }); if (!response.ok) throw new Error(response.status === 401 ? 'Email or password is incorrect.' : 'Sign in failed.'); setSession(await response.json()) } catch (reason) { showError(reason) } finally { setBusy(false) } }
+  async function switchBranch(membershipId: string) { setBusy(true); setError(''); try { const response = await mutate('/v1/context', { membershipId }); if (!response.ok) throw new Error('That branch is not assigned to your account.'); setSession(await response.json()); setSelectedDate(''); setSelectedTime('') } catch (reason) { showError(reason) } finally { setBusy(false) } }
+  async function logout() { setBusy(true); await mutate('/v1/auth/logout'); setSession(null); setBusy(false) }
 
-  async function switchBranch(membershipId: string) {
-    setBusy(true); setError('')
-    try {
-      const response = await mutate('/v1/context', { membershipId })
-      if (!response.ok) throw new Error('That branch is not assigned to your account.')
-      setSession(await response.json())
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Branch switch failed.') }
-    finally { setBusy(false) }
-  }
-
-  async function logout() {
-    setBusy(true)
-    await mutate('/v1/auth/logout')
-    setSession(null); setBusy(false)
-  }
+  async function registerPatient(event: FormEvent) { event.preventDefault(); setBusy(true); setError(''); try { const payload = { ...patientForm, dateOfBirth: patientForm.dateOfBirth || null, email: patientForm.email || null, address: patientForm.address || null }; const response = await mutate('/v1/patients', payload); if (!response.ok) throw new Error('Check the patient details and try again.'); const patient: Patient = await response.json(); setPatients(rows => [patient, ...rows]); setPatientId(patient.id); setPatientForm({ firstName: '', lastName: '', dateOfBirth: '', gender: 'FEMALE', mobile: '', email: '', address: '' }) } catch (reason) { showError(reason) } finally { setBusy(false) } }
+  async function bookAppointment(event: FormEvent) { event.preventDefault(); if (!selectedDate || !selectedTime) { setError('Select an available date and time slot.'); return } setBusy(true); setError(''); try { const response = await mutate('/v1/appointments', { patientId, doctorProfileId: doctorId, appointmentDate: selectedDate, startsAt: selectedTime, type: 'NEW', reason: 'Reception booking', requestKey: crypto.randomUUID() }); if (!response.ok) throw new Error(response.status === 409 ? 'That slot has just become full. Select another slot.' : 'Unable to book this appointment.'); const appointment: Appointment = await response.json(); setAppointments(rows => [...rows, appointment].sort((a, b) => a.tokenNumber - b.tokenNumber)); setSelectedTime('') } catch (reason) { showError(reason) } finally { setBusy(false) } }
+  async function changeStatus(id: string, status: string) { setBusy(true); try { const response = await mutate(`/v1/appointments/${id}/status`, { status }, 'PATCH'); if (!response.ok) throw new Error('Appointment status could not be changed.'); const updated: Appointment = await response.json(); setAppointments(rows => rows.map(item => item.id === id ? updated : item)) } catch (reason) { showError(reason) } finally { setBusy(false) } }
 
   if (checking) return <main className="loading" role="status">Opening CareDesk…</main>
+  if (!session) return <main className="auth-shell"><section className="auth-story"><a className="brand" href="/" aria-label="CareDesk home"><span className="brand-mark">+</span><span><strong>CareDesk</strong><small>Hospital ERP</small></span></a><div><p className="eyebrow">Secure hospital workspace</p><h1>Care starts with the right context.</h1><p>Sign in to your assigned hospital and branch. Every request remains scoped and auditable.</p></div><small>React · Spring Boot · MongoDB</small></section><section className="login-panel"><form onSubmit={login}><p className="eyebrow">Welcome back</p><h2>Sign in to CareDesk</h2><label>Email address<input type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="username" required /></label><label>Password<input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" required /></label>{error && <p className="error" role="alert">{error}</p>}<button disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button><p className="demo-note">Local demo: reception@lotus.test / CareDesk@2026!</p></form></section></main>
 
-  if (!session) return (
-    <main className="auth-shell">
-      <section className="auth-story">
-        <a className="brand" href="/" aria-label="CareDesk home"><span className="brand-mark">+</span><span><strong>CareDesk</strong><small>Hospital ERP</small></span></a>
-        <div><p className="eyebrow">Secure hospital workspace</p><h1>Care starts with the right context.</h1><p>Sign in to your assigned hospital and branch. Every request remains scoped and auditable.</p></div>
-        <small>React · Spring Boot · MongoDB</small>
-      </section>
-      <section className="login-panel">
-        <form onSubmit={login}>
-          <p className="eyebrow">Welcome back</p><h2>Sign in to CareDesk</h2>
-          <label>Email address<input type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="username" required /></label>
-          <label>Password<input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" required /></label>
-          {error && <p className="error" role="alert">{error}</p>}
-          <button disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
-          <p className="demo-note">Local demo: reception@lotus.test / CareDesk@2026!</p>
-        </form>
-      </section>
-    </main>
-  )
-
-  return (
-    <main className="portal-shell">
-      <aside>
-        <a className="brand brand--light" href="/"><span className="brand-mark">+</span><span><strong>CareDesk</strong><small>Hospital ERP</small></span></a>
-        <nav><a className="active" href="#overview">Overview</a><a href="#patients">Patients</a><a href="#appointments">Appointments</a>{session.permissions.includes('AUDIT.VIEW') && <a href="#audit">Audit log</a>}</nav>
-        <button className="quiet" onClick={logout} disabled={busy}>Sign out</button>
-      </aside>
-      <section className="workspace">
-        <header><div><p className="eyebrow">{session.hospitalName}</p><h1>Good day, {session.name.split(' ')[0]}.</h1></div><div className="user-chip"><strong>{session.name}</strong><span>{session.role.replaceAll('_', ' ')}</span></div></header>
-        <section className="context-card"><div><small>Active care location</small><strong>{session.branchName}</strong></div><label>Switch assigned branch<select value={session.membershipId} onChange={event => switchBranch(event.target.value)} disabled={busy}>{session.memberships.map(item => <option key={item.id} value={item.id}>{item.branchName} · {item.role.replaceAll('_', ' ')}</option>)}</select></label></section>
-        {error && <p className="error" role="alert">{error}</p>}
-        <section className="welcome-grid" id="overview"><article><span>Identity</span><strong>Authenticated</strong><p>Server-side session with CSRF protection.</p></article><article><span>Tenant</span><strong>{session.branchName}</strong><p>Requests are restricted to this membership.</p></article><article><span>Permissions</span><strong>{session.permissions.length}</strong><p>Role permissions loaded by the API.</p></article></section>
-        <section className="next-card"><p className="eyebrow">Foundation ready</p><h2>Identity and tenant isolation are active.</h2><p>Patient, doctor, availability, and reception appointment workflows are next in the migration sequence.</p></section>
-      </section>
-    </main>
-  )
+  return <main className="portal-shell"><aside><a className="brand brand--light" href="/"><span className="brand-mark">+</span><span><strong>CareDesk</strong><small>Hospital ERP</small></span></a><nav><a className="active" href="#appointments">Reception desk</a><a href="#patients">Register patient</a><a href="#queue">Today’s queue</a>{session.permissions.includes('AUDIT.VIEW') && <a href="#audit">Audit log</a>}</nav><button className="quiet" onClick={logout} disabled={busy}>Sign out</button></aside><section className="workspace"><header><div><p className="eyebrow">{session.hospitalName}</p><h1>Reception workspace</h1></div><div className="user-chip"><strong>{session.name}</strong><span>{session.role.replaceAll('_', ' ')}</span></div></header><section className="context-card"><div><small>Active care location</small><strong>{session.branchName}</strong></div><label>Switch assigned branch<select value={session.membershipId} onChange={event => switchBranch(event.target.value)} disabled={busy}>{session.memberships.map(item => <option key={item.id} value={item.id}>{item.branchName} · {item.role.replaceAll('_', ' ')}</option>)}</select></label></section>{error && <p className="error" role="alert">{error}</p>}
+    <section className="reception-grid" id="appointments"><form className="work-card" onSubmit={bookAppointment}><p className="eyebrow">New appointment</p><h2>Choose doctor and slot</h2><label>Patient<select value={patientId} onChange={event => setPatientId(event.target.value)} required>{patients.map(patient => <option key={patient.id} value={patient.id}>{patient.uhid} · {patient.firstName} {patient.lastName}</option>)}</select></label><label>Doctor<select value={doctorId} onChange={event => { setDoctorId(event.target.value); setSelectedDate(''); setSelectedTime('') }} required>{doctors.map(doctor => <option key={doctor.id} value={doctor.id}>{doctor.name} · {doctor.specialization}</option>)}</select></label><div className="date-strip">{dates.map(date => <button type="button" className={selectedDate === date.date ? 'selected' : ''} key={date.date} onClick={() => { setSelectedDate(date.date); setSelectedTime('') }}><strong>{date.label.slice(0, 3)}</strong><span>{date.date.slice(5)}</span></button>)}</div><div className="slot-grid">{dates.find(date => date.date === selectedDate)?.slots.map(slot => <button type="button" className={selectedTime === slot.startsAt ? 'selected' : ''} key={slot.startsAt} disabled={slot.remaining === 0} onClick={() => setSelectedTime(slot.startsAt)}>{slot.startsAt.slice(0, 5)}<small>{slot.remaining === 0 ? 'Full' : `${slot.remaining} left`}</small></button>)}</div><button disabled={busy || !patientId || !doctorId}>{busy ? 'Saving…' : 'Book appointment'}</button></form>
+      <form className="work-card" id="patients" onSubmit={registerPatient}><p className="eyebrow">Patient identity</p><h2>Register patient</h2><div className="form-pair"><label>First name<input value={patientForm.firstName} onChange={event => setPatientForm({ ...patientForm, firstName: event.target.value })} required /></label><label>Last name<input value={patientForm.lastName} onChange={event => setPatientForm({ ...patientForm, lastName: event.target.value })} /></label></div><div className="form-pair"><label>Date of birth<input type="date" value={patientForm.dateOfBirth} onChange={event => setPatientForm({ ...patientForm, dateOfBirth: event.target.value })} /></label><label>Gender<select value={patientForm.gender} onChange={event => setPatientForm({ ...patientForm, gender: event.target.value })}><option>FEMALE</option><option>MALE</option><option>OTHER</option><option>UNKNOWN</option></select></label></div><label>Mobile<input value={patientForm.mobile} onChange={event => setPatientForm({ ...patientForm, mobile: event.target.value })} required /></label><label>Email<input type="email" value={patientForm.email} onChange={event => setPatientForm({ ...patientForm, email: event.target.value })} /></label><button disabled={busy}>Register and select patient</button></form></section>
+    <section className="queue-card" id="queue"><div><p className="eyebrow">Today’s queue</p><h2>Appointments and tokens</h2></div><div className="queue-list">{appointments.length === 0 && <p className="empty">No appointments for today.</p>}{appointments.map(item => <article key={item.id}><span className="token">#{item.tokenNumber}</span><div><strong>{item.patientName}</strong><small>{item.patientUhid} · {item.doctorName} · {item.startsAt.slice(0, 5)}</small></div><span className={`pill pill--${item.status.toLowerCase()}`}>{item.status.replace('_', ' ')}</span><div className="queue-actions">{item.status === 'BOOKED' && <button onClick={() => changeStatus(item.id, 'CHECKED_IN')}>Check in</button>}{item.status === 'CHECKED_IN' && <button onClick={() => changeStatus(item.id, 'WAITING')}>Send to waiting</button>}</div></article>)}</div></section>
+  </section></main>
 }
 
 export default App

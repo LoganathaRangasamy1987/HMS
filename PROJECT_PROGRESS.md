@@ -1,6 +1,6 @@
 # Hospital ERP — project progress and delivery plan
 
-Last updated: **2026-09-28**
+Last updated: **2026-09-29**
 
 This is the main progress record for the whole application. Update it whenever work starts, changes, passes verification, fails, or stops. A planned task is not an implemented feature, and an implemented feature is not proof of deployment.
 
@@ -10,10 +10,10 @@ This is the main progress record for the whole application. Update it whenever w
 | --- | --- |
 | Product | CareDesk Hospital ERP; the verified Laravel application remains the reference implementation while an approved React + Spring Boot + MongoDB replacement is built locally |
 | Current sprint | **Technology migration foundation is in progress; the Laravel ERP Lite implementation remains operational and its external release closeout is deferred until local rewrite parity** |
-| Current task | **MIG-003 — authentication, tenant context, authorization, audit, and cross-tenant rejection foundation (DONE); MIG-004 is next.** |
-| Latest application verification | **Migration workspace:** MIG-003 Spring tests pass for CSRF, BCrypt login, session continuity, assigned branch switching, cross-hospital rejection, and audit permissions; Gradle build, React lint/build, and a live cookie/CSRF/login/tenant HTTP flow passed locally. GitHub Actions run 36425347159 passed both `test` and `migration-workspace` on commit `60527f2`. **Laravel reference:** 272 PHP tests / 2141 assertions pass with 3 opt-in skips. |
+| Current task | **MIG-004 — patients, doctors, availability, appointments, slot picker, tokens, and reception parity (DONE locally); remote CI verification is pending.** |
+| Latest application verification | **Migration workspace:** all 11 Spring tests pass, including reception booking, queue transitions, transactional slot-capacity rejection, and tenant isolation; Gradle build, React lint/build, and a live reception login → doctor → available date/time → booking/token flow passed locally. GitHub Actions run 36425347159 remains the latest remote pass pending the MIG-004 push. **Laravel reference:** 272 PHP tests / 2141 assertions pass with 3 opt-in skips. |
 | Deployment | Source is pushed to the public GitHub repository and remote CI passes. Local development uses persistent SQLite at `database/database.sqlite`; all migrations and fictional demo seeds are applied and the local server returns HTTP 200. Existing MariaDB files were not modified or removed. External staging and production are not deployed |
-| Next coding task | **MIG-004 — patients, doctors, availability, appointments, slot picker, tokens, and reception parity** |
+| Next coding task | **MIG-005 — service catalog, invoices, payments, adjustments, receipts, and reconciliation parity** |
 | Next foundation closeout tasks | HMS-002 and HMS-012 are complete; finish HMS-010 staging verification and configure real mail delivery in HMS-011 when their external prerequisites are available |
 | First operational pilot | End of Sprint 4: registration → appointment/check-in → consultation/prescription → invoice/payment → patient history |
 | ERP Lite release | End of Sprint 7, after laboratory, pharmacy, reporting, and release acceptance |
@@ -69,7 +69,7 @@ These are working delivery batches, expanded from the earlier M0–M10 milestone
 | 16 | Platform administration, multi-branch operations, editions | M10 | Stable modules and tenant isolation | PENDING |
 | 17 | Messaging, payments, insurance, devices, PACS integrations | M10 | Relevant module and provider specifications | PENDING |
 | 18 | Full application acceptance and rollout | Final release gate | Required modules/integrations for selected edition | PENDING |
-| Migration | React + Spring Boot + MongoDB replacement and parity cutover | Existing Sprints 1–7 provide the behavioral reference | Approved local rewrite; Laravel remains available until acceptance | IN PROGRESS — MIG-003 complete; MIG-004 is next |
+| Migration | React + Spring Boot + MongoDB replacement and parity cutover | Existing Sprints 1–7 provide the behavioral reference | Approved local rewrite; Laravel remains available until acceptance | IN PROGRESS — MIG-004 complete locally; remote CI pending |
 
 Laboratory and pharmacy can proceed in parallel after their shared clinical and billing contracts are defined. Other independent modules can overlap when the team has capacity. External setup tasks do not prevent independent local implementation.
 
@@ -82,7 +82,7 @@ The user approved a local full-stack rewrite on 2026-09-28. The existing Laravel
 | MIG-001 | Workspace/runtime foundation: verify Java, Node, MongoDB Server and Compass; scaffold Spring Boot API and React UI; configure local environment templates, health checks, builds, and tests without committing secrets | DONE — Java 25, Node 22, MongoDB Server 8.2.1 and Compass 1.49.5 verified; Spring Boot 4.1 API and React 19/TypeScript workspace, environment defaults, secured routing baseline, live health UI, Gradle/frontend builds, tests, lint, local Mongo connection and CI job completed |
 | MIG-002 | MongoDB architecture and migration contracts: collection boundaries, indexes, references/snapshots, audit history, decimal/date conventions, transaction/replica-set requirements, and repeatable fictional SQLite-to-Mongo import validation | DONE — isolated `caredesk-rs` on port 27018, transaction manager and rollback proof, versioned named indexes, tenant/reference/snapshot/Decimal128/UTC/append-only conventions, count-only allowlisted SQLite inventory, Compass URI, repeatable commands, build and live health verified without altering legacy data |
 | MIG-003 | Authentication and tenant foundation: users, hospitals, branches, memberships, roles/permissions, secure browser authentication, active context, audit, and cross-tenant rejection | DONE locally — Mongo identity collections and indexes, BCrypt login, HTTP-only session, CSRF, session rotation/expiry, active membership switching, server permissions, append-only audit, cross-hospital rejection, local demo UI/data, automated tests, live HTTP verification |
-| MIG-004 | Patients, doctors, availability, appointments, slot picker, tokens, and reception parity | PENDING |
+| MIG-004 | Patients, doctors, availability, appointments, slot picker, tokens, and reception parity | DONE locally — hospital patients/UHIDs, branch doctors and weekly schedules, next-30-day capacity-aware slots, idempotent transactional booking, atomic tokens/capacity ledgers, reception queue transitions, tenant/permission enforcement, fictional demo data, React workflow, tests and live HTTP proof |
 | MIG-005 | Service catalog, invoices, payments, adjustments, receipts, and reconciliation parity | PENDING |
 | MIG-006 | Encounters, consultations, vitals, diagnoses, prescriptions, documents, and Patient 360 parity | PENDING |
 | MIG-007 | Laboratory catalogs, orders, specimens, results, verification, reports, and worklists parity | PENDING |
@@ -408,6 +408,14 @@ Next execution order:
 4. Start Sprint 8 with HMS-801 after ERP Lite acceptance, while maintaining this tracker at every work session.
 
 ## Dated work log
+
+### 2026-09-29 — React/Spring reception appointment workflow completed locally
+
+- **Task:** MIG-004 — DONE for local implementation and acceptance; remote CI verification is pending the public push.
+- **Actual changes:** added hospital-scoped Mongo patient identity with atomic yearly UHIDs, active-branch doctor profiles with Decimal128 consultation fees and embedded weekly availability, capacity-aware next-30-day date/time slot calculation in branch timezone, immutable patient/doctor snapshots on appointments, idempotent request keys, atomic per-doctor/date tokens, and conditional slot-capacity ledgers inside Mongo transactions. Added reception booking and BOOKED → CHECKED_IN → WAITING transitions, cancellation capacity release support, audit events, tenant/permission checks, named indexes and `MIG-004-v1`. Replaced the React foundation dashboard with patient registration, doctor/date/slot selection, disabled full slots, appointment booking, token display, and live queue controls.
+- **Verification:** the focused reception suite passed three tests covering date/slot discovery, booking/token creation, check-in/waiting transitions, transactional capacity rejection on the third request to a capacity-two slot, foreign doctor rejection, and hospital-scoped patient results. The complete Spring build passed all 11 tests; React lint and production build passed. A fresh API on port 8082 completed a real reception CSRF/login flow, returned Dr Arjun Kumar's dates and slots, and booked a fictional patient for `2026-09-29 10:15` with token 1 and BOOKED status.
+- **Corrections found during verification:** Spring Boot 4.1 moved Mongo configuration from `spring.data.mongodb` to `spring.mongodb`; correcting the property made the application use the intended port-27018 replica set instead of silently falling back to standalone localhost MongoDB. Reception also received the explicit `DOCTOR_AVAILABILITY.VIEW` permission. The project-managed replica set was restarted and confirmed writable; the existing Windows MongoDB service on port 27017 and Laravel data were not modified.
+- **Next:** push and verify remote CI, then begin MIG-005 service catalog, invoicing, payments, adjustments, receipts, and reconciliation parity.
 
 ### 2026-09-28 — React/Spring authentication and tenant foundation completed locally
 

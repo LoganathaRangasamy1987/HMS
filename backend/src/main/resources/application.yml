@@ -3,9 +3,8 @@ spring:
     name: caredesk-api
   profiles:
     default: local
-  data:
-    mongodb:
-      uri: ${MONGODB_URI:mongodb://127.0.0.1:27018/caredesk?replicaSet=caredesk-rs}
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://127.0.0.1:27018/caredesk?replicaSet=caredesk-rs}
 
 server:
   port: ${SERVER_PORT:8080}
