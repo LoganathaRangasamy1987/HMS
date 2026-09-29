@@ -10,10 +10,10 @@ This is the main progress record for the whole application. Update it whenever w
 | --- | --- |
 | Product | CareDesk Hospital ERP; the verified Laravel application remains the reference implementation while an approved React + Spring Boot + MongoDB replacement is built locally |
 | Current sprint | **Technology migration foundation is in progress; the Laravel ERP Lite implementation remains operational and its external release closeout is deferred until local rewrite parity** |
-| Current task | **MIG-004 — patients, doctors, availability, appointments, slot picker, tokens, and reception parity (DONE locally and in remote CI).** |
-| Latest application verification | **Migration workspace:** all 11 Spring tests pass, including reception booking, queue transitions, transactional slot-capacity rejection, and tenant isolation; Gradle build, React lint/build, and a live reception login → doctor → available date/time → booking/token flow passed locally. GitHub Actions run 36523530229 passed both the Laravel and migration-workspace jobs on corrective commit `45270e1`. **Laravel reference:** 272 PHP tests / 2141 assertions pass with 3 opt-in skips. |
+| Current task | **MIG-005 — service catalog, invoices, payments, adjustments, receipts, and reconciliation parity (DONE locally); remote CI verification is pending.** |
+| Latest application verification | **Migration workspace:** all 14 Spring tests pass, including billing pricing, issue/payment/receipt, idempotency, financial controls, reconciliation authorization, and tenant isolation; Spring Boot artifact, React lint/build, and a live reception login → invoice → UPI payment → receipt flow passed locally. GitHub Actions run 36523530229 is the latest remote pass pending the MIG-005 push. **Laravel reference:** 272 PHP tests / 2141 assertions pass with 3 opt-in skips. |
 | Deployment | Source is pushed to the public GitHub repository and remote CI passes. Local development uses persistent SQLite at `database/database.sqlite`; all migrations and fictional demo seeds are applied and the local server returns HTTP 200. Existing MariaDB files were not modified or removed. External staging and production are not deployed |
-| Next coding task | **MIG-005 — service catalog, invoices, payments, adjustments, receipts, and reconciliation parity** |
+| Next coding task | **MIG-006 — encounters, consultations, vitals, diagnoses, prescriptions, documents, and Patient 360 parity** |
 | Next foundation closeout tasks | HMS-002 and HMS-012 are complete; finish HMS-010 staging verification and configure real mail delivery in HMS-011 when their external prerequisites are available |
 | First operational pilot | End of Sprint 4: registration → appointment/check-in → consultation/prescription → invoice/payment → patient history |
 | ERP Lite release | End of Sprint 7, after laboratory, pharmacy, reporting, and release acceptance |
@@ -69,7 +69,7 @@ These are working delivery batches, expanded from the earlier M0–M10 milestone
 | 16 | Platform administration, multi-branch operations, editions | M10 | Stable modules and tenant isolation | PENDING |
 | 17 | Messaging, payments, insurance, devices, PACS integrations | M10 | Relevant module and provider specifications | PENDING |
 | 18 | Full application acceptance and rollout | Final release gate | Required modules/integrations for selected edition | PENDING |
-| Migration | React + Spring Boot + MongoDB replacement and parity cutover | Existing Sprints 1–7 provide the behavioral reference | Approved local rewrite; Laravel remains available until acceptance | IN PROGRESS — MIG-004 complete locally and in remote CI; MIG-005 is next |
+| Migration | React + Spring Boot + MongoDB replacement and parity cutover | Existing Sprints 1–7 provide the behavioral reference | Approved local rewrite; Laravel remains available until acceptance | IN PROGRESS — MIG-005 complete locally; remote CI pending |
 
 Laboratory and pharmacy can proceed in parallel after their shared clinical and billing contracts are defined. Other independent modules can overlap when the team has capacity. External setup tasks do not prevent independent local implementation.
 
@@ -83,7 +83,7 @@ The user approved a local full-stack rewrite on 2026-09-28. The existing Laravel
 | MIG-002 | MongoDB architecture and migration contracts: collection boundaries, indexes, references/snapshots, audit history, decimal/date conventions, transaction/replica-set requirements, and repeatable fictional SQLite-to-Mongo import validation | DONE — isolated `caredesk-rs` on port 27018, transaction manager and rollback proof, versioned named indexes, tenant/reference/snapshot/Decimal128/UTC/append-only conventions, count-only allowlisted SQLite inventory, Compass URI, repeatable commands, build and live health verified without altering legacy data |
 | MIG-003 | Authentication and tenant foundation: users, hospitals, branches, memberships, roles/permissions, secure browser authentication, active context, audit, and cross-tenant rejection | DONE locally — Mongo identity collections and indexes, BCrypt login, HTTP-only session, CSRF, session rotation/expiry, active membership switching, server permissions, append-only audit, cross-hospital rejection, local demo UI/data, automated tests, live HTTP verification |
 | MIG-004 | Patients, doctors, availability, appointments, slot picker, tokens, and reception parity | DONE — hospital patients/UHIDs, branch doctors and weekly schedules, next-30-day capacity-aware slots, idempotent transactional booking, atomic tokens/capacity ledgers, reception queue transitions, tenant/permission enforcement, fictional demo data, React workflow, tests, live HTTP proof, and passing remote CI |
-| MIG-005 | Service catalog, invoices, payments, adjustments, receipts, and reconciliation parity | PENDING |
+| MIG-005 | Service catalog, invoices, payments, adjustments, receipts, and reconciliation parity | DONE locally — Decimal128 service pricing and invoice snapshots, annual invoice/receipt sequences, partial and idempotent payments, credits/debits/refunds/voids, branch reconciliation, audit/tenant/role enforcement, React cashier/admin workspace, tests and live HTTP proof; remote CI pending |
 | MIG-006 | Encounters, consultations, vitals, diagnoses, prescriptions, documents, and Patient 360 parity | PENDING |
 | MIG-007 | Laboratory catalogs, orders, specimens, results, verification, reports, and worklists parity | PENDING |
 | MIG-008 | Pharmacy catalogs, purchases, batches, dispensing, returns, adjustments, alerts, and reconciliation parity | PENDING |
@@ -408,6 +408,14 @@ Next execution order:
 4. Start Sprint 8 with HMS-801 after ERP Lite acceptance, while maintaining this tracker at every work session.
 
 ## Dated work log
+
+### 2026-09-29 — React/Spring billing workflow completed locally
+
+- **Task:** MIG-005 — DONE for local implementation and acceptance; remote CI verification is pending the public push.
+- **Actual changes:** added hospital service catalog entries with Decimal128 price/discount/tax values; branch-scoped draft and issued invoices with immutable patient and line-pricing snapshots; atomic annual invoice and receipt sequences; cash, UPI, card and bank-transfer collection; UUID idempotency; partial-payment and overpayment controls; reasoned credits/debits, payment-linked refunds, unpaid-invoice voids, and derived invoice balances/statuses. Added branch-timezone daily gross/refund/net reconciliation, named indexes and `MIG-005-v1`, audit events, role/tenant enforcement, fictional services, and a responsive React service, invoicing, cashier, printable-receipt, refund, adjustment, void, and reconciliation workspace.
+- **Verification:** the focused three-test billing suite passed invoice issue/payment/receipt replay, partial payment and overpayment rejection, credit and void behavior, administrator-only financial actions/reconciliation, and hospital isolation. The complete Spring suite passed all 14 tests; the Spring Boot artifact, React lint, and React production build passed. A fresh API on port 8082 completed a real receptionist CSRF/login flow, issued `INV-2026-000013` for ₹500.00, collected a UPI payment, generated `RCP-2026-000007`, moved the invoice to PAID, and returned a zero balance. The temporary API was stopped; the project MongoDB replica remains available.
+- **Correction found during verification:** the first reconciliation test exposed a Spring Data Mongo query that emitted duplicate range criteria for one timestamp field. The repositories now use derived `Between` queries; the focused suite and full suite passed afterward.
+- **Next:** push and verify remote CI, then begin MIG-006 encounters, consultations, vitals, diagnoses, prescriptions, documents, and Patient 360 parity.
 
 ### 2026-09-29 — React/Spring reception appointment workflow completed
 

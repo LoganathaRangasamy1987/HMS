@@ -29,7 +29,13 @@ public class MongoSchemaInitializer implements ApplicationRunner {
 		unique("doctorProfiles", "doctor_registration_unique", "hospitalId", "registrationNumber");
 		index("doctorProfiles", "doctor_branch_directory", "hospitalId", "branchId", "status", "name");
 		unique("invoices", "invoice_number_unique", "hospitalId", "number");
+		index("invoices", "invoice_branch_worklist", "hospitalId", "branchId", "status", "createdAt");
+		unique("serviceItems", "service_code_unique", "hospitalId", "code");
+		index("serviceItems", "service_catalog", "hospitalId", "status", "code");
 		unique("payments", "payment_idempotency_unique", "hospitalId", "idempotencyKey");
+		index("payments", "payment_reconciliation", "hospitalId", "branchId", "receivedAt", "mode");
+		unique("financialAdjustments", "adjustment_idempotency_unique", "hospitalId", "requestKey");
+		index("financialAdjustments", "adjustment_reconciliation", "hospitalId", "branchId", "recordedAt", "type");
 		index("appointments", "appointment_worklist", "branchId", "doctorProfileId", "startsAt", "status");
 		unique("appointments", "appointment_token_unique", "branchId", "doctorProfileId", "appointmentDate", "tokenNumber");
 		unique("appointments", "appointment_request_unique", "hospitalId", "requestKey");
@@ -46,6 +52,10 @@ public class MongoSchemaInitializer implements ApplicationRunner {
 		mongoTemplate.getCollection("schemaMigrations").updateOne(
 			new Document("_id", "MIG-004-v1"),
 			new Document("$setOnInsert", new Document("description", "Patients, doctors, availability, appointments, and capacity ledgers")),
+			new com.mongodb.client.model.UpdateOptions().upsert(true));
+		mongoTemplate.getCollection("schemaMigrations").updateOne(
+			new Document("_id", "MIG-005-v1"),
+			new Document("$setOnInsert", new Document("description", "Service catalog, invoices, payments, adjustments, and reconciliation")),
 			new com.mongodb.client.model.UpdateOptions().upsert(true));
 	}
 
